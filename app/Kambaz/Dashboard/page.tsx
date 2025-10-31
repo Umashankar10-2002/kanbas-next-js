@@ -1,7 +1,17 @@
 // app/Kambaz/Dashboard/page.tsx
 import { FaClipboard, FaRegCommentDots, FaRegCheckSquare } from "react-icons/fa";
 
-const courses = [
+// ✅ add a type and use it below
+type Course = {
+  id: string;
+  title: string;
+  code: string;
+  term: string;
+  color?: string;
+  image?: string;
+};
+
+const courses: Course[] = [
   {
     id: "cs5010",
     title: "CS 5010 Program Design Paradigms",
@@ -14,7 +24,7 @@ const courses = [
     title: "CS 5200 Database Management Systems",
     code: "CS5200.MERGED.202530",
     term: "Spring 2025",
-    image: "/course-mysql.jpg", // optional: put image in /public
+    image: "/course-mysql.jpg",
   },
   {
     id: "cs5610",
@@ -67,7 +77,8 @@ export default function DashboardPage() {
   );
 }
 
-function CourseCard({ course }) {
+// ✅ type the prop
+function CourseCard({ course }: { course: Course }) {
   return (
     <div
       style={{
