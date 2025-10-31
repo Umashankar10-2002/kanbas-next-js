@@ -83,8 +83,15 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   );
 }
 
+type SidebarLinkProps = {
+  href: string;
+  icon: ReactNode;
+  label: string;
+  active?: boolean; // optional
+};
+
 /* SidebarLink component */
-function SidebarLink({ href, icon, label, active }) {
+function SidebarLink({ href, icon, label, active = false }: SidebarLinkProps) {
   const baseStyle = {
     width: "100%",
     textAlign: "center",
