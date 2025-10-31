@@ -1,5 +1,5 @@
 // app/layout.tsx
-import type { ReactNode } from "react";
+import type { ReactNode,  CSSProperties } from "react";
 
 import "bootstrap/dist/css/bootstrap.min.css";
 import Link from "next/link";
@@ -92,7 +92,7 @@ type SidebarLinkProps = {
 
 /* SidebarLink component */
 function SidebarLink({ href, icon, label, active = false }: SidebarLinkProps) {
-  const baseStyle = {
+  const baseStyle: CSSProperties = {
     width: "100%",
     textAlign: "center",
     padding: "10px 0",
@@ -105,19 +105,9 @@ function SidebarLink({ href, icon, label, active = false }: SidebarLinkProps) {
     transition: "all 0.2s",
   };
 
-  const activeStyle = {
-    backgroundColor: "#fff",
-    color: "#c1121f",
-  };
-
-  const inactiveStyle = {
-    backgroundColor: "#000",
-    color: "#fff",
-  };
-
-  const iconStyle = active
-    ? { color: "#c1121f", fontSize: 20 }
-    : { color: "#c1121f", fontSize: 20 };
+  const activeStyle: CSSProperties = { backgroundColor: "#fff", color: "#c1121f" };
+  const inactiveStyle: CSSProperties = { backgroundColor: "#000", color: "#fff" };
+  const iconStyle: CSSProperties = { color: "#c1121f", fontSize: 20 };
 
   return (
     <Link
