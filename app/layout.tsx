@@ -1,4 +1,6 @@
 // app/layout.tsx
+import type { ReactNode } from "react";
+
 import "bootstrap/dist/css/bootstrap.min.css";
 import Link from "next/link";
 import {
