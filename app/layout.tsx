@@ -10,7 +10,7 @@ import {
   FaFlask,
 } from "react-icons/fa";
 
-export default function RootLayout({ children }) {
+export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>
