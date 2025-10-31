@@ -1,13 +1,15 @@
+import { ReactNode } from "react";
 import CourseNav from "./CourseNav";
 
-export default function CourseLayout({ children }) {
+export default function CourseLayout(
+  { children }: { children: ReactNode }
+) {
   return (
     <div
       style={{
         display: "grid",
         gridTemplateColumns: "220px 1fr",
         minHeight: "100%",
-        background: "#f9fafb",
       }}
     >
       <CourseNav />
