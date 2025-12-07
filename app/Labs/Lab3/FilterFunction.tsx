@@ -1,0 +1,18 @@
+export default function FilterFunction() {
+    const numberArray1: number[] = [1, 2, 4, 5, 6];
+  
+    const numbersGreaterThan2: number[] = numberArray1.filter((a) => a > 2);
+    const evenNumbers: number[] = numberArray1.filter((a) => a % 2 === 0);
+    const oddNumbers: number[] = numberArray1.filter((a) => a % 2 !== 0);
+  
+    return (
+      <div id="wd-filter-function">
+        <h4>Filter Function</h4>
+        numbersGreaterThan2 = {numbersGreaterThan2.join(", ")} <br />
+        evenNumbers = {evenNumbers.join(", ")} <br />
+        oddNumbers = {oddNumbers.join(", ")}
+        <hr />
+      </div>
+    );
+  }
+  

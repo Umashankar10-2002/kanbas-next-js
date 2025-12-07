@@ -1,60 +1,11 @@
 // app/Kambaz/Dashboard/page.tsx
-import { FaClipboard, FaRegCommentDots, FaRegCheckSquare } from "react-icons/fa";
-
-// ✅ add a type and use it below
-type Course = {
-  id: string;
-  title: string;
-  code: string;
-  term: string;
-  color?: string;
-  image?: string;
-};
-
-const courses: Course[] = [
-  {
-    id: "cs5010",
-    title: "CS 5010 Program Design Paradigms",
-    code: "CS5010.MERGED.202530",
-    term: "Spring 2025",
-    color: "#e91e63",
-  },
-  {
-    id: "cs5200",
-    title: "CS 5200 Database Management Systems",
-    code: "CS5200.MERGED.202530",
-    term: "Spring 2025",
-    image: "/course-mysql.jpg",
-  },
-  {
-    id: "cs5610",
-    title: "CS 5610 Web Development",
-    code: "CS5610.18616.202610",
-    term: "Fall 2025",
-    color: "#1e88e5",
-  },
-  {
-    id: "cs5800",
-    title: "CS 5800 Algorithms",
-    code: "CS5800.MERGED.202610",
-    term: "Fall 2025",
-    color: "#1e3a8a",
-  },
-  {
-    id: "khoury-orient",
-    title: "Khoury College New Master's Orientation",
-    code: "Khoury.Masters.Orientation",
-    term: "Term",
-    color: "#6b7280",
-  },
-  {
-    id: "career-prep",
-    title: "Spring 2025 – Career Preparation",
-    code: "Sp25.CareerPrep.CoopProcess",
-    term: "Spring 2025",
-    color: "#a06a00",
-  },
-];
+import Link from "next/link";
+import {
+  FaClipboard,
+  FaRegCommentDots,
+  FaRegCheckSquare,
+} from "react-icons/fa";
+import { courses, Course } from "../data/courses";
 
 export default function DashboardPage() {
   return (
@@ -70,14 +21,19 @@ export default function DashboardPage() {
         }}
       >
         {courses.map((c) => (
-          <CourseCard key={c.id} course={c} />
+          <Link
+            key={c.id}
+            href={`/Kambaz/Courses/${c.id}`} // ✅ use the same id as in data
+            style={{ textDecoration: "none", color: "inherit" }}
+          >
+            <CourseCard course={c} />
+          </Link>
         ))}
       </div>
     </div>
   );
 }
 
-// ✅ type the prop
 function CourseCard({ course }: { course: Course }) {
   return (
     <div
@@ -85,7 +41,8 @@ function CourseCard({ course }: { course: Course }) {
         background: "#fff",
         borderRadius: 10,
         overflow: "hidden",
-        boxShadow: "0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.1)",
+        boxShadow:
+          "0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.1)",
         display: "flex",
         flexDirection: "column",
         minHeight: 220,
@@ -117,7 +74,9 @@ function CourseCard({ course }: { course: Course }) {
         </div>
         <div style={{ color: "#6b7280", fontSize: 13 }}>
           {course.code}
-          <span style={{ marginLeft: 6, color: "#9ca3af" }}>{course.term}</span>
+          <span style={{ marginLeft: 6, color: "#9ca3af" }}>
+            {course.term}
+          </span>
         </div>
       </div>
 
