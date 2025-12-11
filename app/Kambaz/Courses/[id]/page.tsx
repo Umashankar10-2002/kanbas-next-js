@@ -1,228 +1,161 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { courses } from "../../data/courses"; // Adjust path if needed
+import Link from "next/link";
+import { useSelector, useDispatch } from "react-redux";
+import { useState } from "react";
+import type { RootState } from "../../store";
+import type { Course } from "../../data/courses";
+import {
+  addModule,
+  deleteModule,
+  editModule,
+  updateModule,
+  Module,
+} from "./Modules/reducer";
 
-export default function CourseHome() {
-  const params = useParams();
+export default function CoursePage() {
+  const params = useParams<{ id: string }>();
+  const courseId = params?.id as string;
 
-  // Normalize the ID coming from the route
-  const rawId = (params as any).id;
-  const id =
-    typeof rawId === "string"
-      ? rawId
-      : Array.isArray(rawId)
-      ? rawId[0]
-      : "";
+  const dispatch = useDispatch();
 
-  const course = courses.find((c) => c.id === id);
+  const course = useSelector((state: RootState) =>
+    state.coursesReducer.courses.find(
+      (c: Course) => c.id === courseId
+    )
+  );
+
+  const modules = useSelector((state: RootState) =>
+    state.modulesReducer.modules.filter(
+      (m: Module) => m.course === courseId
+    )
+  );
+
+  const [moduleName, setModuleName] = useState("");
+
+  if (!course) {
+    return (
+      <div className="p-3">
+        <h2>Course not found</h2>
+        <Link href="/Kambaz/Dashboard" className="btn btn-primary mt-2">
+          Back to Dashboard
+        </Link>
+      </div>
+    );
+  }
+
+  const handleAddModule = () => {
+    const name = moduleName.trim();
+    if (!name) return;
+    dispatch(addModule({ name, course: courseId }) as any);
+    setModuleName("");
+  };
 
   return (
-    <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 20 }}>
-      {/* ================================
-          DATA-DRIVEN COURSE HEADER
-      ================================= */}
-      <header>
-        <h1 style={{ fontWeight: 700, marginBottom: 4 }}>
-          {course ? course.title : "Course"}
-        </h1>
-
-        <div style={{ color: "#6b7280" }}>
-          {course ? (
-            <>
-              {course.code} · {course.term}
-            </>
-          ) : (
-            <>Unknown course id: {id}</>
-          )}
-        </div>
-
-        <hr style={{ marginTop: 12 }} />
-      </header>
-
-      {/* ================================
-          EXISTING LAYOUT (Modules + Status)
-      ================================= */}
+    <div className="p-3" id="wd-course-page">
+      {/* Header bar with color */}
       <div
         style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 300px",
-          gap: 20,
-          width: "100%",
+          height: 140,
+          borderRadius: 10,
+          marginBottom: 16,
+          background: course.image
+            ? `url(${course.image}) center/cover no-repeat`
+            : course.color || "#c1121f",
         }}
-      >
-        {/* --------------------------------
-            MODULES COLUMN
-        -------------------------------- */}
-        <section>
-          <h2 style={{ marginBottom: 12 }}>Modules</h2>
+      />
 
-          <div style={{ display: "grid", gap: 12 }}>
-            {/* MODULE 1 */}
-            <div
-              style={{
-                border: "1px solid #e5e7eb",
-                borderRadius: 8,
-                overflow: "hidden",
-              }}
-            >
-              <div
-                style={{
-                  background: "#f3f4f6",
-                  padding: "10px 12px",
-                  fontWeight: 600,
-                }}
-              >
-                Week 1 – Introduction
-              </div>
-
-              <div>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    padding: "10px 12px",
-                    borderLeft: "4px solid #22c55e",
-                    borderTop: "1px solid #f3f4f6",
-                  }}
-                >
-                  <span>Lesson 1: Welcome &amp; Syllabus</span>
-                  <span style={{ color: "#6b7280" }}>⋮</span>
-                </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    padding: "10px 12px",
-                    borderLeft: "4px solid #22c55e",
-                    borderTop: "1px solid #f3f4f6",
-                  }}
-                >
-                  <span>Lesson 2: Setup &amp; Tools</span>
-                  <span style={{ color: "#6b7280" }}>⋮</span>
-                </div>
-              </div>
-            </div>
-
-            {/* MODULE 2 */}
-            <div
-              style={{
-                border: "1px solid #e5e7eb",
-                borderRadius: 8,
-                overflow: "hidden",
-              }}
-            >
-              <div
-                style={{
-                  background: "#f3f4f6",
-                  padding: "10px 12px",
-                  fontWeight: 600,
-                }}
-              >
-                Week 2 – Basics
-              </div>
-
-              <div>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    padding: "10px 12px",
-                    borderLeft: "4px solid #22c55e",
-                    borderTop: "1px solid #f3f4f6",
-                  }}
-                >
-                  <span>Lesson 1: Components &amp; Props</span>
-                  <span style={{ color: "#6b7280" }}>⋮</span>
-                </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    padding: "10px 12px",
-                    borderLeft: "4px solid #22c55e",
-                    borderTop: "1px solid #f3f4f6",
-                  }}
-                >
-                  <span>Lesson 2: State &amp; Events</span>
-                  <span style={{ color: "#6b7280" }}>⋮</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* --------------------------------
-            COURSE STATUS COLUMN
-        -------------------------------- */}
-        <aside
-          style={{
-            background: "#fff",
-            border: "1px solid #ddd",
-            borderRadius: 8,
-            padding: 16,
-            minWidth: 280,
-            height: "fit-content",
-          }}
-        >
-          <h3 style={{ fontWeight: 700, marginBottom: 12 }}>Course Status</h3>
-
-          <div style={{ display: "grid", gap: 10 }}>
-            <button
-              style={{
-                background: "#c1121f",
-                color: "#fff",
-                border: "none",
-                padding: "8px 12px",
-                borderRadius: 4,
-              }}
-            >
-              Publish
-            </button>
-
-            <button
-              style={{
-                background: "#e5e7eb",
-                color: "#111827",
-                border: "none",
-                padding: "8px 12px",
-                borderRadius: 4,
-              }}
-            >
-              Import
-            </button>
-
-            <button
-              style={{
-                background: "#e5e7eb",
-                color: "#111827",
-                border: "none",
-                padding: "8px 12px",
-                borderRadius: 4,
-              }}
-            >
-              Settings
-            </button>
-          </div>
-
-          <hr style={{ margin: "16px 0" }} />
-
-          <ul
-            style={{
-              listStyle: "none",
-              padding: 0,
-              display: "grid",
-              gap: 8,
-            }}
-          >
-            <li>View Course Stream</li>
-            <li>View Course Calendar</li>
-            <li>Announcements</li>
-          </ul>
-        </aside>
+      <h1 style={{ fontWeight: 700 }}>{course.title}</h1>
+      <div style={{ color: "#6b7280", marginBottom: 8 }}>
+        {course.code}
+        {course.term ? ` • ${course.term}` : null}
       </div>
+
+      <div className="mb-3">
+        <Link href="/Kambaz/Dashboard" className="btn btn-outline-secondary">
+          Back to Dashboard
+        </Link>
+      </div>
+
+      <hr />
+
+      {/* ================== MODULES SECTION ================== */}
+      <h4>Modules</h4>
+
+      {/* Controls */}
+      <div className="mb-3 d-flex gap-2">
+        <input
+          className="form-control"
+          placeholder="New module name"
+          value={moduleName}
+          onChange={(e) => setModuleName(e.target.value)}
+        />
+        <button className="btn btn-primary" onClick={handleAddModule}>
+          Add
+        </button>
+      </div>
+
+      {/* List */}
+      <ul className="list-group" id="wd-modules">
+        {modules.length === 0 && (
+          <li className="list-group-item text-muted">
+            No modules yet. Add one above.
+          </li>
+        )}
+
+        {modules.map((m: Module) => (
+          <li
+            key={m._id}
+            className="list-group-item d-flex justify-content-between align-items-center"
+          >
+            <div style={{ flex: 1, marginRight: 12 }}>
+              {m.editing ? (
+                <input
+                  className="form-control"
+                  value={m.name}
+                  onChange={(e) =>
+                    dispatch(
+                      updateModule({ ...m, name: e.target.value }) as any
+                    )
+                  }
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      dispatch(
+                        updateModule({ ...m, editing: false }) as any
+                      );
+                    }
+                  }}
+                />
+              ) : (
+                <span>{m.name}</span>
+              )}
+            </div>
+
+            <div className="btn-group btn-group-sm">
+              <button
+                className="btn btn-outline-secondary"
+                onClick={() =>
+                  m.editing
+                    ? dispatch(
+                        updateModule({ ...m, editing: false }) as any
+                      )
+                    : dispatch(editModule(m._id) as any)
+                }
+              >
+                {m.editing ? "Save" : "Edit"}
+              </button>
+
+              <button
+                className="btn btn-outline-danger"
+                onClick={() => dispatch(deleteModule(m._id) as any)}
+              >
+                Delete
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

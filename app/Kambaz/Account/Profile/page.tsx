@@ -1,78 +1,131 @@
 "use client";
-import "bootstrap/dist/css/bootstrap.min.css";
-import Link from "next/link";
+
+import { useEffect, useState } from "react";
+import { profile, signout, updateUser } from "../../client";
+import { useRouter } from "next/navigation";
 
 export default function Profile() {
+  const router = useRouter();
+  const [user, setUser] = useState<any | null>(null);
+  const [form, setForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    username: "",
+  });
+  const [message, setMessage] = useState("");
+
+  const loadProfile = async () => {
+    try {
+      const current = await profile();
+      setUser(current);
+      setForm({
+        firstName: current.firstName || "",
+        lastName: current.lastName || "",
+        email: current.email || "",
+        username: current.username || "",
+      });
+    } catch {
+      router.push("/Kambaz/Account/Signin");
+    }
+  };
+
+  useEffect(() => {
+    loadProfile();
+  }, []);
+
+  const handleSignout = async () => {
+    await signout();
+    router.push("/Kambaz/Account/Signin");
+  };
+
+  const handleSave = async () => {
+    if (!user) return;
+    setMessage("");
+
+    const updated = await updateUser({
+      ...user,
+      firstName: form.firstName,
+      lastName: form.lastName,
+      email: form.email,
+      username: form.username,
+    });
+
+    setUser(updated);
+    setMessage("Profile updated");
+  };
+
+  if (!user) return <div className="container mt-4">Loading...</div>;
+
   return (
-    <div className="container py-4">
+    <div className="container mt-4">
       <h2 className="mb-3">Profile</h2>
 
-      <div className="card shadow-sm">
-        <div className="card-body">
-          <form>
-            {/* Row 1 */}
-            <div className="row g-3">
-              <div className="col-md-6">
-                <label htmlFor="username" className="form-label fw-bold">Username</label>
-                <input id="username" className="form-control" defaultValue="student1" />
-              </div>
-              <div className="col-md-6">
-                <label htmlFor="email" className="form-label fw-bold">Email</label>
-                <input id="email" type="email" className="form-control" defaultValue="student@example.com" />
-              </div>
-            </div>
+      {message && (
+        <div className="alert alert-success py-2">{message}</div>
+      )}
 
-            {/* Row 2 */}
-            <div className="row g-3 mt-1">
-              <div className="col-md-6">
-                <label htmlFor="first" className="form-label fw-bold">First Name</label>
-                <input id="first" className="form-control" defaultValue="John" />
-              </div>
-              <div className="col-md-6">
-                <label htmlFor="last" className="form-label fw-bold">Last Name</label>
-                <input id="last" className="form-control" defaultValue="Doe" />
-              </div>
-            </div>
+      <div className="border rounded p-4 bg-white shadow-sm mb-4">
+        <div className="mb-3">
+          <label className="form-label fw-bold">Username</label>
+          <input
+            className="form-control"
+            value={form.username}
+            onChange={(e) =>
+              setForm({ ...form, username: e.target.value })
+            }
+          />
+        </div>
 
-            {/* Row 3 */}
-            <div className="row g-3 mt-1">
-              <div className="col-md-6">
-                <label htmlFor="password" className="form-label fw-bold">Password</label>
-                <input id="password" type="password" className="form-control" defaultValue="1234" />
-              </div>
-              <div className="col-md-6">
-                <label htmlFor="dob" className="form-label fw-bold">Date of Birth</label>
-                <input id="dob" type="date" className="form-control" defaultValue="2000-01-21" />
-              </div>
-            </div>
+        <div className="mb-3 d-flex gap-2">
+          <div className="flex-fill">
+            <label className="form-label fw-bold">First Name</label>
+            <input
+              className="form-control"
+              value={form.firstName}
+              onChange={(e) =>
+                setForm({ ...form, firstName: e.target.value })
+              }
+            />
+          </div>
+          <div className="flex-fill">
+            <label className="form-label fw-bold">Last Name</label>
+            <input
+              className="form-control"
+              value={form.lastName}
+              onChange={(e) =>
+                setForm({ ...form, lastName: e.target.value })
+              }
+            />
+          </div>
+        </div>
 
-            {/* Row 4 */}
-            <div className="row g-3 mt-1">
-              <div className="col-md-6">
-                <label htmlFor="role" className="form-label fw-bold">Role</label>
-                <select id="role" defaultValue="STUDENT" className="form-control">
-                  <option value="STUDENT">Student</option>
-                  <option value="FACULTY">Faculty</option>
-                  <option value="ADMIN">Admin</option>
-                  <option value="TA">TA</option>
-                </select>
-              </div>
-            </div>
+        <div className="mb-3">
+          <label className="form-label fw-bold">Email</label>
+          <input
+            className="form-control"
+            type="email"
+            value={form.email}
+            onChange={(e) =>
+              setForm({ ...form, email: e.target.value })
+            }
+          />
+        </div>
 
-            {/* Actions */}
-            <div className="d-flex justify-content-between align-items-center mt-4">
-              <Link href="/Kambaz/Account/Signin" className="btn btn-light border">
-                Sign out
-              </Link>
-              <div className="d-flex gap-2">
-                <button type="button" className="btn btn-secondary">Cancel</button>
-                <button type="submit" className="btn btn-danger text-white">Save Profile</button>
-              </div>
-            </div>
-          </form>
+        <div className="d-flex gap-2">
+          <button className="btn btn-primary" onClick={handleSave}>
+            Save Profile
+          </button>
+          <button className="btn btn-outline-danger" onClick={handleSignout}>
+            Sign Out
+          </button>
         </div>
       </div>
 
+      <h5>Raw User JSON (for debugging)</h5>
+      <pre className="bg-light p-3 border rounded small">
+        {JSON.stringify(user, null, 2)}
+      </pre>
     </div>
   );
 }

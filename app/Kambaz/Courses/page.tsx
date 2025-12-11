@@ -1,16 +1,19 @@
-// app/Kambaz/Dashboard/page.tsx
-import Link from "next/link";
-import {
-  FaClipboard,
-  FaRegCommentDots,
-  FaRegCheckSquare,
-} from "react-icons/fa";
-import { courses, Course } from "../data/courses";
+"use client";
 
-export default function DashboardPage() {
+import { useSelector } from "react-redux";
+import type { RootState } from "../store";
+import type { Course } from "../data/courses";
+import Link from "next/link";
+import { FaClipboard, FaRegCommentDots, FaRegCheckSquare } from "react-icons/fa";
+
+export default function CoursesPage() {
+  const courses = useSelector(
+    (state: RootState) => state.coursesReducer.courses
+  );
+
   return (
     <div>
-      <h1 style={{ fontWeight: 700, marginBottom: 20 }}>Dashboard</h1>
+      <h1 style={{ fontWeight: 700, marginBottom: 20 }}>Courses</h1>
 
       <div
         style={{
@@ -20,13 +23,13 @@ export default function DashboardPage() {
           alignItems: "stretch",
         }}
       >
-        {courses.map((c) => (
+        {courses.map((course: Course) => (
           <Link
-            key={c.id}
-            href={`/Kambaz/Courses/${c.id}`} // ✅ use the same id as in data
+            key={course.id}
+            href={`/Kambaz/Courses/${course.id}`}
             style={{ textDecoration: "none", color: "inherit" }}
           >
-            <CourseCard course={c} />
+            <CourseCard course={course} />
           </Link>
         ))}
       </div>

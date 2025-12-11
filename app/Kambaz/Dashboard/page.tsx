@@ -1,17 +1,121 @@
-// app/Kambaz/Dashboard/page.tsx
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
 import {
   FaClipboard,
   FaRegCommentDots,
   FaRegCheckSquare,
 } from "react-icons/fa";
-import { courses, Course } from "../data/courses";
+import { useSelector, useDispatch } from "react-redux";
+import type { RootState } from "../store";
+import {
+  addNewCourse,
+  deleteCourse,
+  updateCourse,
+} from "../Courses/courseReducer";
+import type { Course } from "../data/courses";
+
+const EMPTY_COURSE: Course = {
+  id: "",
+  title: "",
+  code: "",
+  term: "",
+  color: "#c1121f",
+  image: "",
+};
 
 export default function DashboardPage() {
+  const courses = useSelector(
+    (state: RootState) => state.coursesReducer.courses
+  );
+  const dispatch = useDispatch();
+
+  const [course, setCourse] = useState<Course>(
+    courses[0] ?? EMPTY_COURSE
+  );
+
+  const onChange = (field: keyof Course, value: string) => {
+    setCourse({ ...course, [field]: value });
+  };
+
   return (
-    <div>
+    <div id="wd-dashboard">
       <h1 style={{ fontWeight: 700, marginBottom: 20 }}>Dashboard</h1>
 
+      {/* ----- COURSE EDITOR (no list, no edit column) ----- */}
+      <div className="mb-4">
+        <h5>Course Editor</h5>
+
+        <input
+          className="form-control mb-2"
+          placeholder="Title"
+          value={course.title}
+          onChange={(e) => onChange("title", e.target.value)}
+        />
+        <input
+          className="form-control mb-2"
+          placeholder="Code (e.g. CS5610)"
+          value={course.code}
+          onChange={(e) => onChange("code", e.target.value)}
+        />
+        <input
+          className="form-control mb-2"
+          placeholder="Term (e.g. Spring 2025)"
+          value={course.term}
+          onChange={(e) => onChange("term", e.target.value)}
+        />
+        <input
+          className="form-control mb-2"
+          placeholder="Color (optional, e.g. #e91e63)"
+          value={course.color ?? ""}
+          onChange={(e) => onChange("color", e.target.value)}
+        />
+        <input
+          className="form-control mb-2"
+          placeholder="Image URL (optional)"
+          value={course.image ?? ""}
+          onChange={(e) => onChange("image", e.target.value)}
+        />
+
+        <div className="mt-2">
+          <button
+            className="btn btn-primary me-2"
+            onClick={() => {
+              const { id, ...rest } = course;
+              dispatch(addNewCourse(rest) as any);
+              setCourse(EMPTY_COURSE);
+            }}
+          >
+            Add
+          </button>
+
+          <button
+            className="btn btn-success me-2"
+            disabled={!course.id}
+            onClick={() => {
+              if (!course.id) return;
+              dispatch(updateCourse(course) as any);
+            }}
+          >
+            Update
+          </button>
+
+          <button
+            className="btn btn-danger"
+            disabled={!course.id}
+            onClick={() => {
+              if (!course.id) return;
+              dispatch(deleteCourse(course.id) as any);
+              setCourse(EMPTY_COURSE);
+            }}
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+
+      {/* ----- CARD GRID ONLY (with Edit/Delete buttons on each card) ----- */}
       <div
         style={{
           display: "grid",
@@ -21,13 +125,51 @@ export default function DashboardPage() {
         }}
       >
         {courses.map((c) => (
-          <Link
+          <div
             key={c.id}
-            href={`/Kambaz/Courses/${c.id}`} // ✅ use the same id as in data
-            style={{ textDecoration: "none", color: "inherit" }}
+            style={{ position: "relative" }}
           >
-            <CourseCard course={c} />
-          </Link>
+            {/* Whole card navigates to course page */}
+            <Link
+              href={`/Kambaz/Courses/${c.id}`}
+              style={{ textDecoration: "none", color: "inherit", display: "block" }}
+            >
+              <CourseCard course={c} />
+            </Link>
+
+            {/* Edit/Delete buttons on the card itself */}
+            <div
+              style={{
+                position: "absolute",
+                top: 8,
+                right: 8,
+                display: "flex",
+                gap: 8,
+              }}
+            >
+              <button
+                className="btn btn-light btn-sm"
+                onClick={(e) => {
+                  e.preventDefault(); // don’t trigger the Link
+                  setCourse(c); // load into editor for editing
+                }}
+              >
+                Edit
+              </button>
+              <button
+                className="btn btn-danger btn-sm"
+                onClick={(e) => {
+                  e.preventDefault();
+                  dispatch(deleteCourse(c.id) as any);
+                  if (course.id === c.id) {
+                    setCourse(EMPTY_COURSE);
+                  }
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
         ))}
       </div>
     </div>
