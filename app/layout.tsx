@@ -1,11 +1,8 @@
 // app/layout.tsx
-"use client";
-
 import type { ReactNode, CSSProperties } from "react";
 import "./Labs/Lab3/Classes.css";
 import "bootstrap/dist/css/bootstrap.min.css";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import {
   FaUser,
   FaTachometerAlt,
@@ -22,7 +19,6 @@ type SidebarLinkProps = {
   active?: boolean;
 };
 
-/* ⭐ Reusable SidebarLink Component */
 function SidebarLink({ href, icon, label, active = false }: SidebarLinkProps) {
   const baseStyle: CSSProperties = {
     width: "100%",
@@ -66,7 +62,7 @@ function SidebarLink({ href, icon, label, active = false }: SidebarLinkProps) {
   );
 }
 
-// 🔹 Data-driven sidebar config
+// Data-driven sidebar config
 const sidebarLinks: Omit<SidebarLinkProps, "active">[] = [
   { href: "/Kambaz/Account/Signin", icon: <FaUser />, label: "Account" },
   { href: "/Kambaz/Dashboard", icon: <FaTachometerAlt />, label: "Dashboard" },
@@ -84,30 +80,7 @@ const sidebarLinks: Omit<SidebarLinkProps, "active">[] = [
   { href: "/Labs", icon: <FaFlask />, label: "Labs" },
 ];
 
-// 🔹 Helper to decide which link is active
-function isActive(pathname: string, href: string, label: string): boolean {
-  if (label === "Calendar") {
-    return pathname.includes("/Calendar");
-  }
-  if (label === "Inbox") {
-    return pathname.includes("/Inbox");
-  }
-  if (label === "Courses") {
-    // Active for course pages, but NOT when in Calendar or Inbox
-    return (
-      pathname.startsWith("/Kambaz/Courses") &&
-      !pathname.includes("/Calendar") &&
-      !pathname.includes("/Inbox")
-    );
-  }
-
-  // Default rule for others (Account, Dashboard, Labs)
-  return pathname === href || pathname.startsWith(href + "/");
-}
-
 export default function RootLayout({ children }: { children: ReactNode }) {
-  const pathname = usePathname();
-
   return (
     <html lang="en">
       <body>
@@ -131,7 +104,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               borderRight: "1px solid #222",
             }}
           >
-            {/* Northeastern Logo */}
             <a
               href="https://www.northeastern.edu"
               target="_blank"
@@ -140,22 +112,18 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               <img
                 src="/logo.png"
                 alt="Northeastern"
-                style={{
-                  width: 50,
-                  height: 50,
-                  marginBottom: 10,
-                }}
+                style={{ width: 50, height: 50, marginBottom: 10 }}
               />
             </a>
 
-            {/* Data-driven sidebar links */}
+            {/* Sidebar links (no active highlight to keep layout server-safe) */}
             {sidebarLinks.map((link) => (
               <SidebarLink
                 key={link.href}
                 href={link.href}
                 icon={link.icon}
                 label={link.label}
-                active={isActive(pathname, link.href, link.label)}
+                active={false}
               />
             ))}
           </nav>
