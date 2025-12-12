@@ -5,7 +5,7 @@ import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 export type Assignment = {
   _id: string;
   title: string;
-  course: string;   // must match Course.id
+  course: string; // must match Course.id
   completed?: boolean;
   editing?: boolean;
 };
@@ -14,57 +14,20 @@ type AssignmentsState = {
   assignments: Assignment[];
 };
 
-// 👇 Seed some initial assignments here
 const initialState: AssignmentsState = {
-  assignments: [
-    {
-      _id: "a1",
-      title: "Syllabus Quiz",
-      course: "CS5610",        // change to match one of your real course IDs
-      completed: false,
-      editing: false,
-    },
-    {
-      _id: "a2",
-      title: "HW 1 – Intro to React",
-      course: "CS5610",
-      completed: false,
-      editing: false,
-    },
-    {
-      _id: "a3",
-      title: "Project Proposal",
-      course: "CS5010",        // another course
-      completed: false,
-      editing: false,
-    },
-  ],
+  assignments: [], // ✅ server will provide real data
 };
 
 const assignmentsSlice = createSlice({
   name: "assignments",
   initialState,
   reducers: {
-    addAssignment: (
-      state,
-      action: PayloadAction<{ title: string; course: string }>
-    ) => {
-      const { title, course } = action.payload;
-      const newAssignment: Assignment = {
-        _id: `ass-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-        title,
-        course,
-        completed: false,
-        editing: false,
-      };
-      state.assignments.push(newAssignment);
+    // ✅ Replace the whole list after loading from server or after CRUD
+    setAssignments: (state, action: PayloadAction<Assignment[]>) => {
+      state.assignments = action.payload;
     },
 
-    deleteAssignment: (state, action: PayloadAction<string>) => {
-      const id = action.payload;
-      state.assignments = state.assignments.filter((a) => a._id !== id);
-    },
-
+    // ✅ Only UI behavior: mark ONE assignment as editing
     editAssignment: (state, action: PayloadAction<string>) => {
       const id = action.payload;
       state.assignments = state.assignments.map((a) =>
@@ -72,28 +35,17 @@ const assignmentsSlice = createSlice({
       );
     },
 
-    updateAssignment: (state, action: PayloadAction<Assignment>) => {
+    // ✅ Optional: update local fields while typing (before saving to server)
+    updateLocalAssignment: (state, action: PayloadAction<Assignment>) => {
       const updated = action.payload;
       state.assignments = state.assignments.map((a) =>
-        a._id === updated._id ? { ...updated, editing: false } : a
-      );
-    },
-
-    toggleCompleted: (state, action: PayloadAction<string>) => {
-      const id = action.payload;
-      state.assignments = state.assignments.map((a) =>
-        a._id === id ? { ...a, completed: !a.completed } : a
+        a._id === updated._id ? updated : a
       );
     },
   },
 });
 
-export const {
-  addAssignment,
-  deleteAssignment,
-  editAssignment,
-  updateAssignment,
-  toggleCompleted,
-} = assignmentsSlice.actions;
+export const { setAssignments, editAssignment, updateLocalAssignment } =
+  assignmentsSlice.actions;
 
 export default assignmentsSlice.reducer;

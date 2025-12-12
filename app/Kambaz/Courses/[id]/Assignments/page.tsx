@@ -1,196 +1,101 @@
 "use client";
 
-import "bootstrap/dist/css/bootstrap.min.css";
-import { FaSearch, FaPlus, FaClipboardList } from "react-icons/fa";
-import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
-import { useState } from "react";
 import type { RootState } from "../../../store";
-import {
-  addAssignment,
-  deleteAssignment,
-  editAssignment,
-  updateAssignment,
-  toggleCompleted,
-  Assignment,
-} from "./reducer";
+import * as client from "../../../client";
+import { setAssignments, editAssignment } from "./reducer";
 
 export default function AssignmentsPage() {
-  const params = useParams<{ id: string }>();
-  const courseId = params.id as string;
-
+  const { id } = useParams<{ id: string }>();
   const dispatch = useDispatch();
-  const [search, setSearch] = useState("");
-  const [newTitle, setNewTitle] = useState("");
 
-  const assignments = useSelector((state: RootState) =>
-    state.assignmentsReducer.assignments.filter(
-      (a: Assignment) => a.course === courseId
-    )
+  const { assignments } = useSelector(
+    (state: RootState) => state.assignmentsReducer
   );
 
-  const filteredAssignments = assignments.filter((a) =>
-    a.title.toLowerCase().includes(search.toLowerCase())
-  );
+  const [title, setTitle] = useState("");
 
-  const handleAddAssignment = () => {
-    const title = newTitle.trim();
-    if (!title) return;
-    dispatch(addAssignment({ title, course: courseId }) as any);
-    setNewTitle("");
+  useEffect(() => {
+    const load = async () => {
+      if (!id) return;
+      const data = await client.findAssignmentsForCourse(id);
+      dispatch(setAssignments(data) as any);
+    };
+    load();
+  }, [id, dispatch]);
+
+  const add = async () => {
+    if (!id || !title.trim()) return;
+    const created = await client.createAssignmentForCourse(id, {
+      title: title.trim(),
+      course: id,
+    });
+    dispatch(setAssignments([...assignments, created]) as any);
+    setTitle("");
+  };
+
+  const remove = async (assignmentId: string) => {
+    await client.deleteAssignment(assignmentId);
+    dispatch(setAssignments(assignments.filter((a: any) => a._id !== assignmentId)) as any);
+  };
+
+  const save = async (assignment: any) => {
+    const updated = await client.updateAssignment({ ...assignment, editing: false });
+    dispatch(
+      setAssignments(assignments.map((a: any) => (a._id === updated._id ? updated : a))) as any
+    );
   };
 
   return (
-    <div className="container mt-4">
-      <h2 className="mb-4">Assignments</h2>
+    <div className="container mt-3">
+      <h2>Assignments</h2>
 
-      {/* Top Action Row */}
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        {/* Search Bar */}
-        <div className="input-group w-50">
-          <span className="input-group-text bg-white border-end-0">
-            <FaSearch color="#6c757d" />
-          </span>
-          <input
-            type="text"
-            className="form-control border-start-0"
-            placeholder="Search for Assignment"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-
-        {/* Buttons */}
-        <div>
-          <button className="btn btn-light border me-2 text-danger d-inline-flex align-items-center gap-2">
-            <FaPlus /> Group
-          </button>
-          <button
-            className="btn btn-danger text-white d-inline-flex align-items-center gap-2"
-            onClick={handleAddAssignment}
-          >
-            <FaPlus /> Assignment
-          </button>
-        </div>
-      </div>
-
-      {/* New assignment title input */}
-      <div className="mb-3 d-flex gap-2">
+      <div className="d-flex gap-2 my-3">
         <input
-          type="text"
           className="form-control"
           placeholder="New assignment title"
-          value={newTitle}
-          onChange={(e) => setNewTitle(e.target.value)}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
         />
-        <button className="btn btn-primary" onClick={handleAddAssignment}>
+        <button className="btn btn-danger" onClick={add}>
           Add
         </button>
       </div>
 
-      {/* Assignment List */}
-      <div className="list-group">
-        {filteredAssignments.length === 0 && (
-          <div className="list-group-item text-muted">
-            No assignments yet. Add one above.
-          </div>
-        )}
+      <ul className="list-group">
+        {assignments.map((a: any) => (
+          <li key={a._id} className="list-group-item d-flex justify-content-between align-items-center">
+            {a.editing ? (
+              <input
+                className="form-control me-3"
+                value={a.title}
+                autoFocus
+                onChange={(e) => {
+                  const newTitle = e.target.value;
+                  dispatch(
+                    setAssignments(assignments.map((x: any) => (x._id === a._id ? { ...x, title: newTitle } : x))) as any
+                  );
+                }}
+                onBlur={() => save(a)}
+                onKeyDown={(e) => e.key === "Enter" && save(a)}
+              />
+            ) : (
+              <span>{a.title}</span>
+            )}
 
-        {filteredAssignments.map((a) => (
-          <div
-            key={a._id}
-            className="list-group-item p-3 mb-3 border-0 shadow-sm"
-            style={{
-              borderLeft: "6px solid #22c55e",
-              borderRadius: "8px",
-            }}
-          >
-            <div className="d-flex justify-content-between align-items-center">
-              <div className="d-flex align-items-start gap-3">
-                <input
-                  className="form-check-input mt-1"
-                  type="checkbox"
-                  checked={!!a.completed}
-                  onChange={() =>
-                    dispatch(toggleCompleted(a._id) as any)
-                  }
-                />
-                <FaClipboardList size={22} color="#c1121f" />
-                <div>
-                  {a.editing ? (
-                    <input
-                      className="form-control mb-1"
-                      value={a.title}
-                      onChange={(e) =>
-                        dispatch(
-                          updateAssignment({
-                            ...a,
-                            title: e.target.value,
-                          }) as any
-                        )
-                      }
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          dispatch(
-                            updateAssignment({
-                              ...a,
-                              editing: false,
-                            }) as any
-                          );
-                        }
-                      }}
-                    />
-                  ) : (
-                    <h5 className="mb-1 text-danger">{a.title}</h5>
-                  )}
-                  {/* You can later add due dates, points, groups into the model if needed */}
-                  <small className="text-muted">
-                  Not available until at 12:00 am | Due 2025-12-12 at 11:59 pm | 50 pts
-                  </small>
-                </div>
-              </div>
-
-              <div className="btn-group btn-group-sm">
-                <button
-                  className="btn btn-outline-secondary"
-                  onClick={() =>
-                    a.editing
-                      ? dispatch(
-                          updateAssignment({
-                            ...a,
-                            editing: false,
-                          }) as any
-                        )
-                      : dispatch(editAssignment(a._id) as any)
-                  }
-                >
-                  {a.editing ? "Save" : "Edit"}
-                </button>
-
-                <button
-                  className="btn btn-outline-danger"
-                  onClick={() =>
-                    dispatch(deleteAssignment(a._id) as any)
-                  }
-                >
-                  Delete
-                </button>
-              </div>
+            <div className="d-flex gap-2">
+              <button className="btn btn-light btn-sm" onClick={() => dispatch(editAssignment(a._id) as any)}>
+                Edit
+              </button>
+              <button className="btn btn-danger btn-sm" onClick={() => remove(a._id)}>
+                Delete
+              </button>
             </div>
-          </div>
+          </li>
         ))}
-      </div>
-
-      {/* Optional back link */}
-      <div className="mt-3">
-        <Link
-          href={`/Kambaz/Courses/${courseId}`}
-          className="btn btn-outline-secondary btn-sm"
-        >
-          Back to Course
-        </Link>
-      </div>
+      </ul>
     </div>
   );
 }

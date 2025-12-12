@@ -1,48 +1,48 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { signin } from "../../client"; 
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { signin } from "../../client";
 
 export default function Signin() {
   const router = useRouter();
-
   const [credentials, setCredentials] = useState({
     username: "",
     password: "",
   });
-
   const [error, setError] = useState("");
 
   const handleSignin = async () => {
+    setError("");
     try {
-      setError("");
-      await signin(credentials);  
-      router.push("/Kambaz/Account/Profile"); 
+      await signin(credentials);
+      router.push("/Kambaz/Account/Profile");
     } catch (e: any) {
-      setError(e?.response?.data?.message || "Invalid username or password");
+      setError(e?.response?.data?.message || "Sign in failed");
     }
   };
 
   return (
-    <div className="container">
+    <div className="container" style={{ maxWidth: 480, marginTop: 40 }}>
       <h2 className="mb-3">Sign In</h2>
 
-      <div className="border rounded p-4 bg-white shadow-sm">
-        {error && (
-          <div className="alert alert-danger py-2">{error}</div>
-        )}
+      {error && (
+        <div className="alert alert-danger py-2">{error}</div>
+      )}
 
+      <div className="border rounded p-4 bg-white shadow-sm">
         <div className="mb-3">
           <label className="form-label fw-bold">Username</label>
           <input
             className="form-control"
-            type="text"
             placeholder="iron_man"
             value={credentials.username}
             onChange={(e) =>
-              setCredentials({ ...credentials, username: e.target.value })
+              setCredentials({
+                ...credentials,
+                username: e.target.value,
+              })
             }
           />
         </div>
@@ -55,22 +55,28 @@ export default function Signin() {
             placeholder="••••••••"
             value={credentials.password}
             onChange={(e) =>
-              setCredentials({ ...credentials, password: e.target.value })
+              setCredentials({
+                ...credentials,
+                password: e.target.value,
+              })
             }
           />
         </div>
 
-        <div className="d-flex gap-2">
+        <div className="d-flex justify-content-between align-items-center">
           <button
             type="button"
             className="btn btn-danger text-white"
-            onClick={handleSignin}   // ← NOW REAL LOGIN
+            onClick={handleSignin}
           >
             Sign In
           </button>
 
-          <Link href="/Kambaz/Account/Signup" className="btn btn-light border">
-            Go to Signup
+          <Link
+            href="/Kambaz/Account/Signup"
+            className="btn btn-light border"
+          >
+            Create Account
           </Link>
         </div>
       </div>

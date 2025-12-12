@@ -1,4 +1,5 @@
 "use client";
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -16,10 +17,10 @@ export default function Signup() {
     setError("");
 
     try {
-      const [firstName, lastName] = fullName.split(" ");
+      const [firstName = "", lastName = ""] = fullName.trim().split(" ");
 
       await signup({
-        username: email, // using email as username
+        username: email || fullName, // use email as username normally
         password,
         firstName,
         lastName,
@@ -33,10 +34,12 @@ export default function Signup() {
   };
 
   return (
-    <div className="container">
+    <div className="container" style={{ maxWidth: 480, marginTop: 40 }}>
       <h2 className="mb-3">Sign Up</h2>
 
-      {error && <div className="text-danger mb-2">{error}</div>}
+      {error && (
+        <div className="alert alert-danger py-2">{error}</div>
+      )}
 
       <div className="border rounded p-4 bg-white shadow-sm">
         <div className="mb-3">
@@ -80,8 +83,10 @@ export default function Signup() {
           >
             Create Account
           </button>
-
-          <Link href="/Kambaz/Account/Signin" className="btn btn-light border">
+          <Link
+            href="/Kambaz/Account/Signin"
+            className="btn btn-light border"
+          >
             Go to Signin
           </Link>
         </div>

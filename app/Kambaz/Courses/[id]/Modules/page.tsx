@@ -1,102 +1,119 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   FaChevronDown,
   FaChevronRight,
   FaPlus,
   FaEllipsisV,
   FaCheckCircle,
-  FaFileAlt,
   FaRegCalendarAlt,
   FaRegCircle,
   FaRocket,
   FaTrash,
   FaPencilAlt,
 } from "react-icons/fa";
+import { useSelector, useDispatch } from "react-redux";
+import { useParams } from "next/navigation";
+import type { RootState } from "../../../store";
+import { setModules, editModule } from "./reducer";
+import * as client from "../../../client";
 
-// --- types ---
-type Lesson = {
-  id: string;
-  title: string;
-  type: "Page" | "Assignment" | "Quiz";
+
+type ModuleType = {
+  _id: string;
+  name: string;
+  course: string;
+  open?: boolean;
+  editing?: boolean;
 };
-type Mod = {
-  id: string;
-  title: string;
-  open: boolean;
-  lessons: Lesson[];
-  editing?: boolean; // <– for inline editing
-};
+
 type DropdownItemProps = { icon: React.ReactNode; text: string };
 
 const RED = "#c1121f";
 const GREEN = "#22c55e";
 const GREY = "#f3f4f6";
 
-const initialModules: Mod[] = [
-  {
-    id: "m1",
-    title: "Week 1 – Introduction",
-    open: true,
-    lessons: [
-      { id: "l1", title: "Welcome & Syllabus", type: "Page" },
-      { id: "l2", title: "Setup & Tools", type: "Assignment" },
-    ],
-  },
-  {
-    id: "m2",
-    title: "Week 2 – React Basics",
-    open: true,
-    lessons: [
-      { id: "l3", title: "Components & Props", type: "Page" },
-      { id: "l4", title: "State & Events", type: "Quiz" },
-    ],
-  },
-];
-
 export default function ModulesPage() {
-  const [mods, setMods] = useState<Mod[]>(initialModules);
-  const [dropdownOpen, setDropdownOpen] = useState<boolean>(false);
+  const dispatch = useDispatch();
+  const { id } = useParams<{ id: string }>(); // course id from [id]
 
-  // ---------- "Reducer" functions over modules ----------
+  const { modules } = useSelector(
+    (state: RootState) => state.modulesReducer
+  ) as { modules: ModuleType[] };
 
-  const toggleModule = (id: string) =>
-    setMods((ms) =>
-      ms.map((m) => (m.id === id ? { ...m, open: !m.open } : m))
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  // --------- LOAD MODULES FROM SERVER WHEN COURSE CHANGES ----------
+  useEffect(() => {
+    const loadModules = async () => {
+      if (!id) return;
+      const serverModules = await client.findModulesForCourse(id);
+      // add UI-only flags open/editing
+      const withFlags = serverModules.map((m: any) => ({
+        ...m,
+        open: true,
+        editing: false,
+      }));
+      dispatch(setModules(withFlags) as any);
+    };
+    loadModules();
+  }, [id, dispatch]);
+
+  // ---------- helpers over modules (now using Redux + server) ----------
+
+  const toggleModule = (moduleId: string) => {
+    const updated = modules.map((m) =>
+      m._id === moduleId ? { ...m, open: !m.open } : m
     );
+    dispatch(setModules(updated) as any);
+  };
 
-  const addModule = () => {
+  const addModule = async () => {
+    if (!id) return;
     const name = window.prompt("New module name");
     if (!name) return;
 
-    const newModule: Mod = {
-      id: `m-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-      title: name,
+    const created = await client.createModuleForCourse(id, {
+      name: name.trim(),
+      course: id,
+    });
+
+    const newModule: ModuleType = {
+      ...created,
       open: true,
-      lessons: [],
+      editing: false,
     };
-    setMods((ms) => [...ms, newModule]);
+
+    dispatch(setModules([...modules, newModule]) as any);
   };
 
-  const deleteModule = (id: string) => {
-    setMods((ms) => ms.filter((m) => m.id !== id));
+  const deleteModule = async (moduleId: string) => {
+    await client.deleteModule(moduleId);
+    const updated = modules.filter((m) => m._id !== moduleId);
+    dispatch(setModules(updated) as any);
   };
 
-  const startEditModule = (id: string) => {
-    setMods((ms) =>
-      ms.map((m) =>
-        m.id === id ? { ...m, editing: true } : { ...m, editing: false }
-      )
+  const startEditModule = (moduleId: string) => {
+    const updated = modules.map((m) =>
+      m._id === moduleId
+        ? { ...m, editing: true }
+        : { ...m, editing: false }
     );
+    dispatch(setModules(updated) as any);
   };
 
-  const updateModuleTitle = (id: string, title: string) => {
-    setMods((ms) =>
-      ms.map((m) =>
-        m.id === id ? { ...m, title, editing: false } : m
-      )
+  const updateModuleTitle = async (moduleId: string, newName: string) => {
+    const module = modules.find((m) => m._id === moduleId);
+    if (!module) return;
+
+    const updatedModule = { ...module, name: newName, editing: false };
+    await client.updateModule(updatedModule);
+
+    const updatedList = modules.map((m) =>
+      m._id === moduleId ? updatedModule : m
     );
+    dispatch(setModules(updatedList) as any);
   };
 
   return (
@@ -110,7 +127,7 @@ export default function ModulesPage() {
           justifyContent: "space-between",
         }}
       >
-        {/* Left buttons (black on grey) */}
+        {/* Left buttons */}
         <div style={{ display: "flex", gap: 10 }}>
           <button
             className="btn"
@@ -119,6 +136,10 @@ export default function ModulesPage() {
               border: "1px solid #e5e7eb",
               color: "#111827",
               padding: "6px 12px",
+            }}
+            onClick={() => {
+              const collapsed = modules.map((m) => ({ ...m, open: false }));
+              dispatch(setModules(collapsed) as any);
             }}
           >
             Collapse All
@@ -208,9 +229,9 @@ export default function ModulesPage() {
 
       {/* Modules list */}
       <div style={{ display: "grid", gap: 12 }}>
-        {mods.map((m) => (
+        {modules.map((m) => (
           <div
-            key={m.id}
+            key={m._id}
             style={{
               border: "1px solid #e5e7eb",
               borderRadius: 8,
@@ -235,7 +256,7 @@ export default function ModulesPage() {
                 }}
               >
                 <button
-                  onClick={() => toggleModule(m.id)}
+                  onClick={() => toggleModule(m._id)}
                   style={{
                     border: "none",
                     background: "transparent",
@@ -256,26 +277,24 @@ export default function ModulesPage() {
                   <input
                     className="form-control"
                     style={{ maxWidth: 320 }}
-                    value={m.title}
+                    value={m.name}
                     autoFocus
-                    onChange={(e) =>
-                      setMods((mods) =>
-                        mods.map((mod) =>
-                          mod.id === m.id
-                            ? { ...mod, title: e.target.value }
-                            : mod
-                        )
-                      )
-                    }
-                    onBlur={() => updateModuleTitle(m.id, m.title)}
+                    onChange={(e) => {
+                      const newName = e.target.value;
+                      const updated = modules.map((mod) =>
+                        mod._id === m._id ? { ...mod, name: newName } : mod
+                      );
+                      dispatch(setModules(updated) as any);
+                    }}
+                    onBlur={() => updateModuleTitle(m._id, m.name)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
-                        updateModuleTitle(m.id, m.title);
+                        updateModuleTitle(m._id, m.name);
                       }
                     }}
                   />
                 ) : (
-                  <strong>{m.title}</strong>
+                  <strong>{m.name}</strong>
                 )}
               </div>
 
@@ -289,12 +308,12 @@ export default function ModulesPage() {
               >
                 <FaPencilAlt
                   style={{ cursor: "pointer" }}
-                  onClick={() => startEditModule(m.id)}
+                  onClick={() => startEditModule(m._id)}
                   title="Edit module title"
                 />
                 <FaTrash
                   style={{ cursor: "pointer" }}
-                  onClick={() => deleteModule(m.id)}
+                  onClick={() => deleteModule(m._id)}
                   title="Delete module"
                 />
                 <FaPlus />
@@ -302,38 +321,8 @@ export default function ModulesPage() {
               </div>
             </div>
 
-            {m.open && (
-              <div style={{ display: "grid" }}>
-                {m.lessons.map((l) => (
-                  <div
-                    key={l.id}
-                    style={{
-                      background: "#fff",
-                      borderLeft: `4px solid ${GREEN}`,
-                      padding: "10px 12px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      borderTop: "1px solid #f3f4f6",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                      }}
-                    >
-                      <FaFileAlt style={{ color: "#6b7280" }} />
-                      <span>{l.title}</span>
-                    </div>
-                    <div style={{ color: "#6b7280" }}>
-                      <FaEllipsisV />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            {/* No lessons for now (rubric only cares about modules) */}
+            {m.open && null}
           </div>
         ))}
       </div>

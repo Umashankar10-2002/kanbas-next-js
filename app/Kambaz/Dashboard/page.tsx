@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   FaClipboard,
@@ -13,8 +13,25 @@ import {
   addNewCourse,
   deleteCourse,
   updateCourse,
+  setCourses,
 } from "../Courses/courseReducer";
 import type { Course } from "../data/courses";
+import {
+  createCourseOnServer,
+  updateCourseOnServer,
+  deleteCourseOnServer,
+  getAllCourses,
+  fetchMyCourses,
+  findMyEnrollments,
+  enrollInCourse,
+  unenrollFromCourse,
+} from "../client";
+
+type Enrollment = {
+  _id: string;
+  user: string;
+  course: string; // course id
+};
 
 const EMPTY_COURSE: Course = {
   id: "",
@@ -26,24 +43,127 @@ const EMPTY_COURSE: Course = {
 };
 
 export default function DashboardPage() {
+  const dispatch = useDispatch();
+
   const courses = useSelector(
     (state: RootState) => state.coursesReducer.courses
   );
-  const dispatch = useDispatch();
 
   const [course, setCourse] = useState<Course>(
     courses[0] ?? EMPTY_COURSE
   );
 
+  // Enrollment UI state
+  const [showAllCourses, setShowAllCourses] = useState(false);
+  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+  const [loadingEnroll, setLoadingEnroll] = useState<string | null>(null);
+
+  const enrolledCourseIds = useMemo(() => {
+    return new Set(enrollments.map((e) => e.course));
+  }, [enrollments]);
+
   const onChange = (field: keyof Course, value: string) => {
     setCourse({ ...course, [field]: value });
+  };
+
+  // 🔹 Load courses depending on toggle + load enrollments
+  useEffect(() => {
+    const load = async () => {
+      try {
+        // 1) always load enrollments for button states
+        const myEnrollments: Enrollment[] = await findMyEnrollments();
+        setEnrollments(myEnrollments);
+
+        // 2) load courses list (my courses by default, or all courses if toggled)
+        const serverCourses: Course[] = showAllCourses
+          ? await getAllCourses()
+          : await fetchMyCourses();
+
+        dispatch(setCourses(serverCourses) as any);
+
+        // 3) set editor to first course if none
+        if (!course.id && serverCourses.length > 0) {
+          setCourse(serverCourses[0]);
+        }
+      } catch (e) {
+        console.error("Error loading dashboard data", e);
+      }
+    };
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch, showAllCourses]);
+
+  const refreshAfterEnrollmentChange = async () => {
+    const myEnrollments: Enrollment[] = await findMyEnrollments();
+    setEnrollments(myEnrollments);
+
+    const serverCourses: Course[] = showAllCourses
+      ? await getAllCourses()
+      : await fetchMyCourses();
+    dispatch(setCourses(serverCourses) as any);
+  };
+
+  const handleAdd = async () => {
+    const { id, ...rest } = course;
+    if (!rest.title && !rest.code) return;
+
+    const created = await createCourseOnServer(rest);
+    dispatch(addNewCourse(created) as any);
+    setCourse(EMPTY_COURSE);
+  };
+
+  const handleUpdate = async () => {
+    if (!course.id) return;
+    const updated = await updateCourseOnServer(course);
+    dispatch(updateCourse(updated) as any);
+  };
+
+  const handleDelete = async () => {
+    if (!course.id) return;
+    await deleteCourseOnServer(course.id);
+    dispatch(deleteCourse(course.id) as any);
+    setCourse(EMPTY_COURSE);
+  };
+
+  const handleEnrollToggle = async (c: Course) => {
+    try {
+      setLoadingEnroll(c.id);
+
+      const isEnrolled = enrolledCourseIds.has(c.id);
+      if (isEnrolled) {
+        await unenrollFromCourse(c.id);
+      } else {
+        await enrollInCourse(c.id);
+      }
+
+      await refreshAfterEnrollmentChange();
+    } catch (e) {
+      console.error("Enrollment change failed", e);
+    } finally {
+      setLoadingEnroll(null);
+    }
   };
 
   return (
     <div id="wd-dashboard">
       <h1 style={{ fontWeight: 700, marginBottom: 20 }}>Dashboard</h1>
 
-      {/* ----- COURSE EDITOR (no list, no edit column) ----- */}
+      {/* Toggle for grading */}
+      <div className="form-check form-switch mb-3">
+        <input
+          className="form-check-input"
+          type="checkbox"
+          role="switch"
+          id="showAllCourses"
+          checked={showAllCourses}
+          onChange={(e) => setShowAllCourses(e.target.checked)}
+        />
+        <label className="form-check-label" htmlFor="showAllCourses">
+          Show all courses (so I can enroll/unenroll)
+        </label>
+      </div>
+
+      {/* ----- COURSE EDITOR ----- */}
       <div className="mb-4">
         <h5>Course Editor</h5>
 
@@ -79,43 +199,21 @@ export default function DashboardPage() {
         />
 
         <div className="mt-2">
-          <button
-            className="btn btn-primary me-2"
-            onClick={() => {
-              const { id, ...rest } = course;
-              dispatch(addNewCourse(rest) as any);
-              setCourse(EMPTY_COURSE);
-            }}
-          >
+          <button className="btn btn-primary me-2" onClick={handleAdd}>
             Add
           </button>
 
-          <button
-            className="btn btn-success me-2"
-            disabled={!course.id}
-            onClick={() => {
-              if (!course.id) return;
-              dispatch(updateCourse(course) as any);
-            }}
-          >
+          <button className="btn btn-success me-2" onClick={handleUpdate}>
             Update
           </button>
 
-          <button
-            className="btn btn-danger"
-            disabled={!course.id}
-            onClick={() => {
-              if (!course.id) return;
-              dispatch(deleteCourse(course.id) as any);
-              setCourse(EMPTY_COURSE);
-            }}
-          >
+          <button className="btn btn-danger" onClick={handleDelete}>
             Delete
           </button>
         </div>
       </div>
 
-      {/* ----- CARD GRID ONLY (with Edit/Delete buttons on each card) ----- */}
+      {/* ----- CARD GRID ----- */}
       <div
         style={{
           display: "grid",
@@ -124,53 +222,80 @@ export default function DashboardPage() {
           alignItems: "stretch",
         }}
       >
-        {courses.map((c) => (
-          <div
-            key={c.id}
-            style={{ position: "relative" }}
-          >
-            {/* Whole card navigates to course page */}
-            <Link
-              href={`/Kambaz/Courses/${c.id}`}
-              style={{ textDecoration: "none", color: "inherit", display: "block" }}
-            >
-              <CourseCard course={c} />
-            </Link>
+        {courses.map((c) => {
+          const isEnrolled = enrolledCourseIds.has(c.id);
 
-            {/* Edit/Delete buttons on the card itself */}
-            <div
-              style={{
-                position: "absolute",
-                top: 8,
-                right: 8,
-                display: "flex",
-                gap: 8,
-              }}
-            >
-              <button
-                className="btn btn-light btn-sm"
-                onClick={(e) => {
-                  e.preventDefault(); // don’t trigger the Link
-                  setCourse(c); // load into editor for editing
+          return (
+            <div key={c.id} style={{ position: "relative" }}>
+              <Link
+                href={`/Kambaz/Courses/${c.id}`}
+                style={{
+                  textDecoration: "none",
+                  color: "inherit",
+                  display: "block",
                 }}
               >
-                Edit
-              </button>
-              <button
-                className="btn btn-danger btn-sm"
-                onClick={(e) => {
-                  e.preventDefault();
-                  dispatch(deleteCourse(c.id) as any);
-                  if (course.id === c.id) {
-                    setCourse(EMPTY_COURSE);
-                  }
+                <CourseCard course={c} />
+              </Link>
+
+              {/* Top-right controls */}
+              <div
+                style={{
+                  position: "absolute",
+                  top: 8,
+                  right: 8,
+                  display: "flex",
+                  gap: 8,
+                  flexWrap: "wrap",
+                  justifyContent: "flex-end",
                 }}
               >
-                Delete
-              </button>
+                {/* Enroll/Unenroll (only really needed when showing all) */}
+                <button
+                  className={`btn btn-sm ${
+                    isEnrolled ? "btn-outline-secondary" : "btn-outline-success"
+                  }`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleEnrollToggle(c);
+                  }}
+                  disabled={loadingEnroll === c.id}
+                  title={isEnrolled ? "Unenroll" : "Enroll"}
+                >
+                  {loadingEnroll === c.id
+                    ? "..."
+                    : isEnrolled
+                    ? "Unenroll"
+                    : "Enroll"}
+                </button>
+
+                <button
+                  className="btn btn-light btn-sm"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setCourse(c);
+                  }}
+                >
+                  Edit
+                </button>
+
+                <button
+                  className="btn btn-danger btn-sm"
+                  onClick={async (e) => {
+                    e.preventDefault();
+                    await deleteCourseOnServer(c.id);
+                    dispatch(deleteCourse(c.id) as any);
+                    if (course.id === c.id) setCourse(EMPTY_COURSE);
+                    // if course deleted, refresh enrollments/courses
+                    await refreshAfterEnrollmentChange();
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

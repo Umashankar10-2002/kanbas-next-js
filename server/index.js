@@ -5,7 +5,12 @@ import session from "express-session";
 import Lab5 from "./Lab5/index.js";
 import db from "./Kambaz/db.js";
 import UserRoutes from "./Kambaz/Users/routes.js";
-import CourseRoutes from "./Kambaz/Courses/routes.js";  // 👈 NEW
+import CourseRoutes from "./Kambaz/Courses/routes.js";  
+import ModulesRoutes from "./Kambaz/Modules/routes.js"; 
+import AssignmentsRoutes from "./Kambaz/Assignments/routes.js";
+import EnrollmentRoutes from "./Kambaz/Enrollments/routes.js";
+
+
 
 const app = express();
 
@@ -33,8 +38,15 @@ Lab5(app);
 // Kambaz Users routes
 UserRoutes(app, db);
 
-// Kambaz Courses routes 👇
+// Kambaz Courses routes 
 CourseRoutes(app, db);
+
+// Kambaz Modules routes
+ModulesRoutes(app, db);
+
+AssignmentsRoutes(app, db);
+
+EnrollmentRoutes(app, db);
 
 app.get("/hello", (req, res) => {
   res.send("Hello from Kambaz server");

@@ -1,15 +1,38 @@
 "use client";
 
-import { useSelector } from "react-redux";
+import { useEffect } from "react";
+import { useSelector, useDispatch } from "react-redux";
 import type { RootState } from "../store";
+import { setCourses } from "./courseReducer";
 import type { Course } from "../data/courses";
 import Link from "next/link";
-import { FaClipboard, FaRegCommentDots, FaRegCheckSquare } from "react-icons/fa";
+import {
+  FaClipboard,
+  FaRegCommentDots,
+  FaRegCheckSquare,
+} from "react-icons/fa";
+import { getAllCourses } from "../client";
 
 export default function CoursesPage() {
+  const dispatch = useDispatch();
+
   const courses = useSelector(
     (state: RootState) => state.coursesReducer.courses
   );
+
+  // 🔹 Load courses from server when page mounts
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const serverCourses: Course[] = await getAllCourses();
+        dispatch(setCourses(serverCourses) as any);
+      } catch (e) {
+        console.error("Error loading courses from server", e);
+      }
+    };
+
+    load();
+  }, [dispatch]);
 
   return (
     <div>
