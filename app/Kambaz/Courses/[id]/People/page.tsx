@@ -1,13 +1,24 @@
 "use client";
+
 import "bootstrap/dist/css/bootstrap.min.css";
 import { FaUserCircle } from "react-icons/fa";
+import { useEffect, useState } from "react";
+import { useParams } from "next/navigation";
+import { findUsersForCourse } from "../../../client"; // adjust if needed
 
 export default function PeoplePage() {
-  const people = [
-    { name: "Umashankar Tamilarasu", role: "Student", email: "tamilarasu.u@northeastern.edu" },
-    { name: "Janani Murugesan", role: "Student", email: "murugesan.j@northeastern.edu" },
-    { name: "Dr. Emily Brown", role: "Instructor", email: "emily@northeastern.edu" },
-  ];
+  const params = useParams<{ id: string }>();
+  const courseId = params.id;
+
+  const [people, setPeople] = useState<any[]>([]);
+
+  useEffect(() => {
+    const load = async () => {
+      const users = await findUsersForCourse(courseId);
+      setPeople(users);
+    };
+    load();
+  }, [courseId]);
 
   return (
     <div className="container mt-4">
@@ -22,18 +33,23 @@ export default function PeoplePage() {
             <th>Email</th>
           </tr>
         </thead>
+
         <tbody>
-          {people.map((person, index) => (
-            <tr key={index}>
+          {people.map((p) => (
+            <tr key={p._id}>
               <td style={{ textAlign: "center" }}>
                 <FaUserCircle size={36} color="#c1121f" />
               </td>
-              <td>{person.name}</td>
-              <td>{person.role}</td>
+              <td>{`${p.firstName ?? ""} ${p.lastName ?? ""}`.trim() || p.username}</td>
+              <td>{p.role}</td>
               <td>
-                <a href={`mailto:${person.email}`} style={{ color: "#c1121f" }}>
-                  {person.email}
-                </a>
+                {p.email ? (
+                  <a href={`mailto:${p.email}`} style={{ color: "#c1121f" }}>
+                    {p.email}
+                  </a>
+                ) : (
+                  "-"
+                )}
               </td>
             </tr>
           ))}

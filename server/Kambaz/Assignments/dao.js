@@ -1,33 +1,26 @@
-// server/Kambaz/Assignments/dao.js
+import model from "./model.js";
 import { v4 as uuidv4 } from "uuid";
 
-export default function AssignmentsDao(db) {
-  function createAssignment(assignment) {
-    const newAssignment = { ...assignment, _id: uuidv4() };
-    db.assignments = [...db.assignments, newAssignment];
-    return newAssignment;
-  }
+export const findAssignmentsForCourse = (courseId) =>
+  model.find({ course: courseId });
 
-  function findAssignmentsForCourse(courseId) {
-    return db.assignments.filter((a) => a.course === courseId);
-  }
+export const createAssignmentForCourse = (courseId, assignment) =>
+  model.create({
+    _id: uuidv4(),
+    course: courseId,
+    title: assignment.title ?? "New Assignment",
+    description: assignment.description ?? "",
+    points: assignment.points ?? 100,
+    dueDate: assignment.dueDate ?? "",
+    availableFrom: assignment.availableFrom ?? "",
+    availableUntil: assignment.availableUntil ?? "",
+  });
 
-  function deleteAssignment(assignmentId) {
-    db.assignments = db.assignments.filter((a) => a._id !== assignmentId);
-    return true;
-  }
+export const updateAssignment = (assignmentId, updates) =>
+  model.updateOne({ _id: assignmentId }, { $set: updates });
 
-  function updateAssignment(assignmentId, updates) {
-    const assignment = db.assignments.find((a) => a._id === assignmentId);
-    if (!assignment) return null;
-    Object.assign(assignment, updates);
-    return assignment;
-  }
+export const deleteAssignment = (assignmentId) =>
+  model.deleteOne({ _id: assignmentId });
 
-  return {
-    createAssignment,
-    findAssignmentsForCourse,
-    deleteAssignment,
-    updateAssignment,
-  };
-}
+export const findAssignmentById = (assignmentId) =>
+  model.findById(assignmentId);

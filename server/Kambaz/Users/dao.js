@@ -1,50 +1,23 @@
-// server/Kambaz/Users/dao.js
+import model from "./model.js";
 import { v4 as uuidv4 } from "uuid";
 
-export default function UsersDao(db) {
-  let { users } = db;
+// Mongo/Mongoose DAO (no db.js)
+export const createUser = (user) => model.create({ ...user, _id: uuidv4() });
 
-  const createUser = (user) => {
-    const newUser = { ...user, _id: uuidv4() };
-    users = [...users, newUser];
-    db.users = users; // keep db in sync
-    return newUser;
-  };
+export const findAllUsers = () => model.find();
 
-  const findAllUsers = () => users;
+export const findUserById = (userId) => model.findById(userId);
 
-  const findUserById = (userId) =>
-    users.find((user) => user._id === userId);
+export const findUserByUsername = (username) =>
+  model.findOne({ username });
 
-  const findUserByUsername = (username) =>
-    users.find((user) => user.username === username);
+export const findUserByCredentials = (username, password) =>
+  model.findOne({ username, password });
 
-  const findUserByCredentials = (username, password) =>
-    users.find(
-      (user) =>
-        user.username === username && user.password === password
-    );
+export const findUsersByRole = (role) => model.find({ role });
 
-  const updateUser = (userId, updates) => {
-    users = users.map((user) =>
-      user._id === userId ? { ...user, ...updates } : user
-    );
-    db.users = users;
-    return users.find((user) => user._id === userId);
-  };
+export const updateUser = (userId, updates) =>
+  model.updateOne({ _id: userId }, { $set: updates });
 
-  const deleteUser = (userId) => {
-    users = users.filter((user) => user._id !== userId);
-    db.users = users;
-  };
-
-  return {
-    createUser,
-    findAllUsers,
-    findUserById,
-    findUserByUsername,
-    findUserByCredentials,
-    updateUser,
-    deleteUser,
-  };
-}
+export const deleteUser = (userId) =>
+  model.deleteOne({ _id: userId });

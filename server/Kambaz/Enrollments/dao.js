@@ -1,32 +1,30 @@
-// server/Kambaz/Enrollments/dao.js
+import model from "./model.js";
 import { v4 as uuidv4 } from "uuid";
 
-export default function EnrollmentsDao(db) {
-  const findEnrollmentsForUser = (userId) =>
-    db.enrollments.filter((e) => e.user === userId);
+export const findEnrollmentsForUser = (userId) =>
+  model.find({ user: userId });
 
-  const isUserEnrolledInCourse = (userId, courseId) =>
-    db.enrollments.some((e) => e.user === userId && e.course === courseId);
+export const isUserEnrolledInCourse = async (userId, courseId) => {
+  const e = await model.findOne({ user: userId, course: courseId });
+  return !!e;
+};
 
-  const enrollUserInCourse = (userId, courseId) => {
-    if (isUserEnrolledInCourse(userId, courseId)) return null;
-    const enrollment = { _id: uuidv4(), user: userId, course: courseId };
-    db.enrollments = [...db.enrollments, enrollment];
-    return enrollment;
-  };
+export const enrollUserInCourse = async (userId, courseId) => {
+  const exists = await model.findOne({ user: userId, course: courseId });
+  if (exists) return null;
+  return model.create({ _id: uuidv4(), user: userId, course: courseId });
+};
 
-  const unenrollUserFromCourse = (userId, courseId) => {
-    const before = db.enrollments.length;
-    db.enrollments = db.enrollments.filter(
-      (e) => !(e.user === userId && e.course === courseId)
-    );
-    return db.enrollments.length !== before;
-  };
+export const unenrollUserFromCourse = async (userId, courseId) => {
+  const result = await model.deleteOne({ user: userId, course: courseId });
+  return result.deletedCount > 0;
+};
 
-  return {
-    findEnrollmentsForUser,
-    enrollUserInCourse,
-    unenrollUserFromCourse,
-    isUserEnrolledInCourse,
-  };
-}
+// ✅ needed when deleting a course
+export const unenrollAllFromCourse = async (courseId) => {
+  await model.deleteMany({ course: courseId });
+};
+
+// ✅ used for Course/People roster (later)
+export const findEnrollmentsForCourse = (courseId) =>
+  model.find({ course: courseId });

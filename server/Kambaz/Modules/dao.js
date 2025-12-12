@@ -1,41 +1,23 @@
-// server/Kambaz/Modules/dao.js
+import model from "./model.js";
 import { v4 as uuidv4 } from "uuid";
 
-export default function ModulesDao(db) {
-  // CREATE
-  function createModule(module) {
-    const newModule = { ...module, _id: uuidv4() };
-    db.modules = [...db.modules, newModule];
-    return newModule;
-  }
+export const findModulesForCourse = (courseId) =>
+  model.find({ course: courseId });
 
-  // READ – all modules for one course
-  function findModulesForCourse(courseId) {
-    const { modules } = db;
-    return modules.filter((module) => module.course === courseId);
-  }
+export const createModuleForCourse = (courseId, module) =>
+  model.create({
+    _id: uuidv4(),
+    course: courseId,
+    name: module.name ?? "New Module",
+    description: module.description ?? "",
+    order: module.order ?? 0,
+  });
 
-  // DELETE
-  function deleteModule(moduleId) {
-    const { modules } = db;
-    db.modules = modules.filter((module) => module._id !== moduleId);
-    // return true/false if needed
-    return true;
-  }
+export const updateModule = (moduleId, updates) =>
+  model.updateOne({ _id: moduleId }, { $set: updates });
 
-  // UPDATE
-  function updateModule(moduleId, moduleUpdates) {
-    const { modules } = db;
-    const module = modules.find((m) => m._id === moduleId);
-    if (!module) return null;
-    Object.assign(module, moduleUpdates);
-    return module;
-  }
+export const deleteModule = (moduleId) =>
+  model.deleteOne({ _id: moduleId });
 
-  return {
-    createModule,
-    findModulesForCourse,
-    deleteModule,
-    updateModule,
-  };
-}
+export const findModuleById = (moduleId) =>
+  model.findById(moduleId);

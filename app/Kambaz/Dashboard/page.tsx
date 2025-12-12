@@ -33,14 +33,15 @@ type Enrollment = {
   course: string; // course id
 };
 
-const EMPTY_COURSE: Course = {
+const makeEmptyCourse = (): Course => ({
   id: "",
   title: "",
   code: "",
   term: "",
   color: "#c1121f",
   image: "",
-};
+});
+
 
 export default function DashboardPage() {
   const dispatch = useDispatch();
@@ -49,9 +50,8 @@ export default function DashboardPage() {
     (state: RootState) => state.coursesReducer.courses
   );
 
-  const [course, setCourse] = useState<Course>(
-    courses[0] ?? EMPTY_COURSE
-  );
+  const [course, setCourse] = useState<Course>(courses[0] ?? makeEmptyCourse());
+
 
   // Enrollment UI state
   const [showAllCourses, setShowAllCourses] = useState(false);
@@ -82,9 +82,13 @@ export default function DashboardPage() {
         dispatch(setCourses(serverCourses) as any);
 
         // 3) set editor to first course if none
-        if (!course.id && serverCourses.length > 0) {
+        const editorIsBlank =
+          !course.id && !course.title && !course.code && !course.term;
+
+        if (editorIsBlank && serverCourses.length > 0) {
           setCourse(serverCourses[0]);
         }
+
       } catch (e) {
         console.error("Error loading dashboard data", e);
       }
@@ -104,25 +108,53 @@ export default function DashboardPage() {
   };
 
   const handleAdd = async () => {
-    const { id, ...rest } = course;
-    if (!rest.title && !rest.code) return;
-
-    const created = await createCourseOnServer(rest);
-    dispatch(addNewCourse(created) as any);
-    setCourse(EMPTY_COURSE);
+    // ✅ If editor currently has an id, user is editing — still allow Add as "new"
+    const payload = {
+      title: course.title,
+      code: course.code,
+      term: course.term,
+      color: course.color,
+      image: course.image,
+    };
+  
+    if (!payload.title && !payload.code) return;
+  
+    const created = await createCourseOnServer(payload);
+  
+    const normalized = { ...created, id: created.id ?? created._id };
+  
+    // ✅ UI updates immediately
+    dispatch(addNewCourse(normalized) as any);
+  
+    // ✅ switch editor to empty so next Add is new
+    setCourse(makeEmptyCourse());
   };
+  
 
   const handleUpdate = async () => {
     if (!course.id) return;
-    const updated = await updateCourseOnServer(course);
-    dispatch(updateCourse(updated) as any);
+  
+    // ✅ UI updates immediately
+    dispatch(updateCourse(course) as any);
+  
+    // ✅ DB update
+    const updatedFromServer = await updateCourseOnServer(course);
+  
+    // normalize id so reducer matches
+    const normalized = {
+      ...updatedFromServer,
+      id: updatedFromServer.id ?? updatedFromServer._id,
+    };
+  
+    dispatch(updateCourse(normalized) as any);
   };
+  
 
   const handleDelete = async () => {
     if (!course.id) return;
     await deleteCourseOnServer(course.id);
     dispatch(deleteCourse(course.id) as any);
-    setCourse(EMPTY_COURSE);
+    setCourse(makeEmptyCourse());
   };
 
   const handleEnrollToggle = async (c: Course) => {
@@ -251,23 +283,22 @@ export default function DashboardPage() {
                 }}
               >
                 {/* Enroll/Unenroll (only really needed when showing all) */}
-                <button
-                  className={`btn btn-sm ${
-                    isEnrolled ? "btn-outline-secondary" : "btn-outline-success"
-                  }`}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleEnrollToggle(c);
-                  }}
-                  disabled={loadingEnroll === c.id}
-                  title={isEnrolled ? "Unenroll" : "Enroll"}
-                >
-                  {loadingEnroll === c.id
-                    ? "..."
-                    : isEnrolled
-                    ? "Unenroll"
-                    : "Enroll"}
-                </button>
+                {showAllCourses && (
+                  <button
+                    className={`btn btn-sm ${
+                      isEnrolled ? "btn-outline-secondary" : "btn-outline-success"
+                    }`}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleEnrollToggle(c);
+                    }}
+                    disabled={loadingEnroll === c.id}
+                    title={isEnrolled ? "Unenroll" : "Enroll"}
+                  >
+                    {loadingEnroll === c.id ? "..." : isEnrolled ? "Unenroll" : "Enroll"}
+                  </button>
+                )}
+
 
                 <button
                   className="btn btn-light btn-sm"
@@ -285,7 +316,7 @@ export default function DashboardPage() {
                     e.preventDefault();
                     await deleteCourseOnServer(c.id);
                     dispatch(deleteCourse(c.id) as any);
-                    if (course.id === c.id) setCourse(EMPTY_COURSE);
+                    if (course.id === c.id) setCourse(makeEmptyCourse());
                     // if course deleted, refresh enrollments/courses
                     await refreshAfterEnrollmentChange();
                   }}

@@ -100,11 +100,13 @@ export const deleteCourseOnServer = async (courseId: string) => {
 
 // Update a course by id
 export const updateCourseOnServer = async (course: any) => {
-  const response = await axios.put(`${COURSES_API}/${course.id}`, course, {
+  const courseId = course.id ?? course._id;
+  const response = await axios.put(`${COURSES_API}/${courseId}`, course, {
     withCredentials: true,
   });
   return response.data;
 };
+
 
 // Find modules for a course
 export const findModulesForCourse = async (courseId: string) => {
@@ -191,7 +193,7 @@ export const enrollInCourse = async (courseId: string) => {
 
 export const unenrollFromCourse = async (courseId: string) => {
   await axios.delete(
-    `${HTTP_SERVER}/api/users/current/courses/${courseId}/unenroll`,
+    `${HTTP_SERVER}/api/users/current/courses/${courseId}/enroll`,
     { withCredentials: true }
   );
 };
@@ -201,5 +203,12 @@ export const findMyEnrollments = async () => {
     `${HTTP_SERVER}/api/users/current/enrollments`,
     { withCredentials: true }
   );
+  return res.data;
+};
+
+export const findUsersForCourse = async (courseId: string) => {
+  const res = await axios.get(`${COURSES_API}/${courseId}/users`, {
+    withCredentials: true,
+  });
   return res.data;
 };

@@ -1,52 +1,19 @@
-// server/Kambaz/Courses/dao.js
+import model from "./model.js";
 import { v4 as uuidv4 } from "uuid";
 
-export default function CoursesDao(db) {
-  function findAllCourses() {
-    return db.courses;
-  }
+export const findAllCourses = () => model.find();
 
-  function findCoursesForEnrolledUser(userId) {
-    const { courses, enrollments } = db;
+export const findCoursesByIds = (courseIds) =>
+  model.find({ _id: { $in: courseIds } });
 
-    const myEnrollments = enrollments.filter(
-      (e) => e.user === userId
-    );
-    const enrolledCourseIds = myEnrollments.map((e) => e.course);
+export const createCourse = (course) =>
+  model.create({ _id: uuidv4(), ...course });
 
-    return courses.filter((c) => enrolledCourseIds.includes(c._id));
-  }
+export const deleteCourse = (courseId) =>
+  model.deleteOne({ _id: courseId });
 
-  function createCourse(course) {
-    const newCourse = {
-      _id: uuidv4(),
-      ...course,
-    };
-    db.courses.push(newCourse);
-    return newCourse;
-  }
+export const updateCourse = (courseId, updates) =>
+  model.updateOne({ _id: courseId }, { $set: updates });
 
-  function deleteCourse(courseId) {
-    const { courses, enrollments } = db;
-    db.courses = courses.filter((c) => c._id !== courseId);
-    db.enrollments = enrollments.filter(
-      (e) => e.course !== courseId
-    );
-  }
-
-  function updateCourse(courseId, courseUpdates) {
-    const { courses } = db;
-    const course = courses.find((c) => c._id === courseId);
-    if (!course) return null;
-    Object.assign(course, courseUpdates);
-    return course;
-  }
-
-  return {
-    findAllCourses,
-    findCoursesForEnrolledUser,
-    createCourse,
-    deleteCourse,
-    updateCourse,
-  };
-}
+export const findCourseById = (courseId) =>
+  model.findById(courseId);

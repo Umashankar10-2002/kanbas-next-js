@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import type { RootState } from "../store";
 import { setCourses } from "./courseReducer";
@@ -11,7 +11,18 @@ import {
   FaRegCommentDots,
   FaRegCheckSquare,
 } from "react-icons/fa";
-import { getAllCourses } from "../client";
+import {
+  getAllCourses,
+  findMyEnrollments,
+  enrollInCourse,
+  unenrollFromCourse,
+} from "../client";
+
+type Enrollment = {
+  _id: string;
+  user: string;
+  course: string; // courseId
+};
 
 export default function CoursesPage() {
   const dispatch = useDispatch();
@@ -20,23 +31,83 @@ export default function CoursesPage() {
     (state: RootState) => state.coursesReducer.courses
   );
 
-  // 🔹 Load courses from server when page mounts
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const serverCourses: Course[] = await getAllCourses();
-        dispatch(setCourses(serverCourses) as any);
-      } catch (e) {
-        console.error("Error loading courses from server", e);
-      }
-    };
+  // ✅ All Courses / My Courses toggle
+  const [showAllCourses, setShowAllCourses] = useState(true);
 
+  // ✅ enrollments for current user
+  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+  const [loadingEnroll, setLoadingEnroll] = useState<string | null>(null);
+
+  const enrolledCourseIds = useMemo(() => {
+    return new Set(enrollments.map((e) => e.course));
+  }, [enrollments]);
+
+  const visibleCourses = useMemo(() => {
+    if (showAllCourses) return courses;
+    return courses.filter((c: any) => enrolledCourseIds.has(c.id ?? c._id));
+  }, [showAllCourses, courses, enrolledCourseIds]);
+
+  const load = async () => {
+    try {
+      const [allCourses, myEnrollments] = await Promise.all([
+        getAllCourses(),
+        findMyEnrollments(),
+      ]);
+      dispatch(setCourses(allCourses) as any);
+      setEnrollments(myEnrollments);
+    } catch (e) {
+      console.error("Error loading Courses page data", e);
+    }
+  };
+
+  // 🔹 Load courses + enrollments
+  useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch]);
+
+  const handleEnrollToggle = async (c: Course) => {
+    try {
+      setLoadingEnroll(c.id);
+      const isEnrolled = enrolledCourseIds.has(c.id);
+
+      if (isEnrolled) {
+        await unenrollFromCourse(c.id);   // DELETE .../enroll
+      } else {
+        await enrollInCourse(c.id);       // POST .../enroll
+      }
+
+      // refresh enrollments (and keep courses list)
+      const myEnrollments = await findMyEnrollments();
+      setEnrollments(myEnrollments);
+    } catch (e) {
+      console.error("Enrollment change failed", e);
+    } finally {
+      setLoadingEnroll(null);
+    }
+  };
 
   return (
     <div>
-      <h1 style={{ fontWeight: 700, marginBottom: 20 }}>Courses</h1>
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <h1 style={{ fontWeight: 700, marginBottom: 0 }}>Courses</h1>
+
+        {/* ✅ Rubric: All Courses / My Courses buttons top right */}
+        <div className="d-flex gap-2">
+          <button
+            className={`btn ${!showAllCourses ? "btn-primary" : "btn-outline-secondary"}`}
+            onClick={() => setShowAllCourses(false)}
+          >
+            My Courses
+          </button>
+          <button
+            className={`btn ${showAllCourses ? "btn-primary" : "btn-outline-secondary"}`}
+            onClick={() => setShowAllCourses(true)}
+          >
+            All Courses
+          </button>
+        </div>
+      </div>
 
       <div
         style={{
@@ -46,15 +117,20 @@ export default function CoursesPage() {
           alignItems: "stretch",
         }}
       >
-        {courses.map((course: Course) => (
-          <Link
-            key={course.id}
-            href={`/Kambaz/Courses/${course.id}`}
-            style={{ textDecoration: "none", color: "inherit" }}
-          >
-            <CourseCard course={course} />
-          </Link>
-        ))}
+        {visibleCourses.map((course: Course) => {
+          const isEnrolled = enrolledCourseIds.has(course.id);
+
+          return (
+            <div key={course.id} style={{ position: "relative" }}>
+              <Link
+                href={`/Kambaz/Courses/${course.id}`}
+                style={{ textDecoration: "none", color: "inherit", display: "block" }}
+              >
+                <CourseCard course={course} />
+              </Link>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

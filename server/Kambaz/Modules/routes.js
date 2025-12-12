@@ -1,46 +1,37 @@
-import ModulesDao from "./dao.js";
+import * as dao from "./dao.js";
 
-export default function ModulesRoutes(app, db) {
-  const dao = ModulesDao(db);
-
-  // GET all modules for a course
+export default function ModulesRoutes(app) {
   // GET /api/courses/:courseId/modules
-  const findModulesForCourse = (req, res) => {
+  const findModulesForCourse = async (req, res) => {
     const { courseId } = req.params;
-    const modules = dao.findModulesForCourse(courseId);
+    const modules = await dao.findModulesForCourse(courseId);
     res.json(modules);
   };
 
-  // CREATE module
   // POST /api/courses/:courseId/modules
-  const createModule = (req, res) => {
+  const createModuleForCourse = async (req, res) => {
     const { courseId } = req.params;
-    const module = dao.createModule({
-      ...req.body,
-      course: courseId,
-    });
-    res.json(module);
+    const created = await dao.createModuleForCourse(courseId, req.body);
+    res.json(created);
   };
 
-  // UPDATE module
   // PUT /api/modules/:moduleId
-  const updateModule = (req, res) => {
+  const updateModule = async (req, res) => {
     const { moduleId } = req.params;
-    const status = dao.updateModule(moduleId, req.body);
-    res.send(status);
+    await dao.updateModule(moduleId, req.body);
+    const updated = await dao.findModuleById(moduleId);
+    res.json(updated);
   };
 
-  // DELETE module
   // DELETE /api/modules/:moduleId
-  const deleteModule = (req, res) => {
+  const deleteModule = async (req, res) => {
     const { moduleId } = req.params;
-    const status = dao.deleteModule(moduleId);
-    res.send(status);
+    await dao.deleteModule(moduleId);
+    res.sendStatus(200);
   };
 
-  // 🔴 ROUTE REGISTRATION (THIS IS REQUIRED)
   app.get("/api/courses/:courseId/modules", findModulesForCourse);
-  app.post("/api/courses/:courseId/modules", createModule);
+  app.post("/api/courses/:courseId/modules", createModuleForCourse);
   app.put("/api/modules/:moduleId", updateModule);
   app.delete("/api/modules/:moduleId", deleteModule);
 }
