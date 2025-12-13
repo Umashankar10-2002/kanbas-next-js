@@ -1,5 +1,6 @@
-// app/Kambaz/Account/client.ts
 import axios from "axios";
+axios.defaults.withCredentials = true;
+
 
 export const HTTP_SERVER = "http://localhost:4000";
 export const USERS_API = `${HTTP_SERVER}/api/users`;
